@@ -18,6 +18,9 @@ class _WordHashEmbedding:
     def name(self):
         return "word-hash"
 
+    def is_legacy(self):
+        return False
+
     def __call__(self, input):  # noqa: A002
         return [self._embed(doc) for doc in input]
 

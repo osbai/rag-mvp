@@ -104,20 +104,30 @@ Install dev dependencies first:
 pip install -e ".[dev]"
 ```
 
-### Retrieval test (no API call)
+Tests are split into two files:
 
-Verifies that the correct chunk is retrieved from ChromaDB for a given question. Uses a logic test document (`docs/logic_test/protocol_purple_jellybean.txt`) with a deliberately unusual answer — if the pipeline returns generic knowledge instead of the document content, the test fails.
+| File | What it covers | API call? |
+|------|---------------|-----------|
+| `tests/test_unit.py` | Chunker, ChromaDB smoke, retrieval | No |
+| `tests/test_integration.py` | Full RAG pipeline (Claude answer) | Yes |
+
+### Unit tests (no API call, no ML model)
 
 ```bash
-pytest tests/test_logic.py
+pytest tests/test_unit.py -v
 ```
+
+Covers:
+- **Chunker** — short documents terminate, content is preserved, empty input is handled
+- **ChromaDB smoke** — `EphemeralClient` + lightweight embedding works end-to-end
+- **Retrieval** — ingesting the logic test document and querying it returns the right chunks
 
 ### Integration test (calls Claude)
 
-Runs the full RAG pipeline end-to-end and checks that Claude's answer is grounded in the document rather than falling back to generic knowledge. Requires `ANTHROPIC_API_KEY` to be set.
+Runs the full RAG pipeline and checks that Claude's answer is grounded in the document rather than falling back to generic knowledge. Requires `ANTHROPIC_API_KEY` to be set. Skips automatically if the API is overloaded.
 
 ```bash
-pytest tests/test_logic.py -m integration
+pytest tests/test_integration.py -m integration -v
 ```
 
 ### Logic test explained

@@ -27,4 +27,5 @@ packages = ["src"]
 [tool.pytest.ini_options]
 markers = [
     "integration: calls the Claude API (requires ANTHROPIC_API_KEY)",
+    "embedding: loads the all-MiniLM-L6-v2 model (~700 MB RAM, slow on first run)",
 ]
