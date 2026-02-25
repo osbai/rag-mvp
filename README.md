@@ -24,7 +24,8 @@ rag-mvp/
 │   ├── store.py      # ChromaDB read/write
 │   ├── rag.py        # retrieve → prompt → stream
 │   └── main.py       # CLI commands
-├── data/             # ChromaDB persists here (git-ignored)
+├── docs/             # your input documents (.txt, .pdf) — put files here
+├── data/             # ChromaDB vector store, auto-generated (git-ignored)
 ├── tests/
 ├── .env.example
 └── pyproject.toml
@@ -85,6 +86,50 @@ All settings can be overridden in `.env`:
 | `CHUNK_SIZE` | `1000` | Max characters per chunk |
 | `CHUNK_OVERLAP` | `200` | Overlap between consecutive chunks |
 | `TOP_K` | `5` | Number of chunks retrieved per query |
+
+## `docs/` vs `data/`
+
+| Folder | Role | Managed by |
+|--------|------|------------|
+| `docs/` | **Input** — your raw `.txt` and `.pdf` files | You |
+| `data/` | **Output** — ChromaDB's embeddings and index | Auto-generated on `rag ingest` |
+
+`docs/` is the source of truth. `data/` is a derived cache that can be deleted and rebuilt from `docs/` at any time. This is why `data/` is git-ignored and `docs/` is not.
+
+## Testing
+
+Install dev dependencies first:
+
+```bash
+pip install -e ".[dev]"
+```
+
+### Retrieval test (no API call)
+
+Verifies that the correct chunk is retrieved from ChromaDB for a given question. Uses a logic test document (`docs/logic_test/protocol_purple_jellybean.txt`) with a deliberately unusual answer — if the pipeline returns generic knowledge instead of the document content, the test fails.
+
+```bash
+pytest tests/test_logic.py
+```
+
+### Integration test (calls Claude)
+
+Runs the full RAG pipeline end-to-end and checks that Claude's answer is grounded in the document rather than falling back to generic knowledge. Requires `ANTHROPIC_API_KEY` to be set.
+
+```bash
+pytest tests/test_logic.py -m integration
+```
+
+### Logic test explained
+
+| | Detail |
+|-|--------|
+| Document | `docs/logic_test/protocol_purple_jellybean.txt` |
+| Question | *"What should I eat right before my workout according to your specific method?"* |
+| Expected answer | "You should have 7 purple jellybeans 4 minutes before your set." |
+| Failure signal | A generic answer like "A small piece of fruit or some fast-acting carbs is best." |
+
+The test passes only if the retrieved context — and Claude's answer — contain `"purple jellybean"` and `"4 minutes"`, confirming the system is grounded by the document and not hallucinating from general fitness knowledge.
 
 ## How it works
 
