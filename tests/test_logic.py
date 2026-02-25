@@ -24,6 +24,24 @@ QUESTION = "What should I eat right before my workout according to your specific
 
 
 # ---------------------------------------------------------------------------
+# Smoke test — ChromaDB + fake embedding (no API call, no ML model)
+# ---------------------------------------------------------------------------
+
+def test_chromadb_smoke():
+    """Verify ChromaDB EphemeralClient + WordHash embedding works end-to-end."""
+    import chromadb
+    from tests.conftest import _WordHashEmbedding
+
+    client = chromadb.EphemeralClient()
+    col = client.get_or_create_collection(
+        name="smoke", embedding_function=_WordHashEmbedding()
+    )
+    col.upsert(documents=["hello world"], ids=["1"])
+    results = col.query(query_texts=["hello"], n_results=1)
+    assert results["documents"] == [["hello world"]]
+
+
+# ---------------------------------------------------------------------------
 # Retrieval test (no API call)
 # ---------------------------------------------------------------------------
 
