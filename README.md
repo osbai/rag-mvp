@@ -104,12 +104,13 @@ Install dev dependencies first:
 pip install -e ".[dev]"
 ```
 
-Tests are split into two files:
+Tests are split into three files:
 
-| File | What it covers | API call? |
-|------|---------------|-----------|
-| `tests/test_unit.py` | Chunker, ChromaDB smoke, retrieval | No |
-| `tests/test_integration.py` | Full RAG pipeline (Claude answer) | Yes |
+| File | What it covers | API call? | ML model? |
+|------|---------------|-----------|-----------|
+| `tests/test_unit.py` | Chunker, ChromaDB smoke, retrieval, ingestion | No | No |
+| `tests/test_embedding.py` | Real `all-MiniLM-L6-v2` embedding model | No | **Yes** (~700 MB) |
+| `tests/test_integration.py` | Full RAG pipeline (Claude answer) | Yes | No |
 
 ### Unit tests (no API call, no ML model)
 
@@ -121,6 +122,21 @@ Covers:
 - **Chunker** — short documents terminate, content is preserved, empty input is handled
 - **ChromaDB smoke** — `EphemeralClient` + lightweight embedding works end-to-end
 - **Retrieval** — ingesting the logic test document and querying it returns the right chunks
+- **Ingestion** — chunking and ingesting `.txt` and `.pdf` files from `docs/` works without errors
+
+### Embedding model test (loads ML model)
+
+Verifies the real `all-MiniLM-L6-v2` embedding model is working correctly. Loads ~700 MB of RAM and triggers a model download on first run.
+
+```bash
+pytest tests/test_embedding.py -m embedding -v
+```
+
+Covers:
+- **Dimension** — each embedding vector is exactly 384 dimensions
+- **Semantic similarity** — similar sentences score higher cosine similarity than unrelated ones
+- **Retrieval (small doc)** — protocol document is split into 5 chunks (chunk_size=300) and mixed with 5 distractors; the model must rank the right chunks in the top-3 for the pre-workout query
+- **Retrieval (large PDF)** — Dietary Guidelines PDF is chunked into 26 pieces and fully embedded; a vegetable servings query must surface the chunk stating the specific recommendation
 
 ### Integration test (calls Claude)
 
