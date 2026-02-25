@@ -32,26 +32,23 @@ class _WordHashEmbedding:
         return [x / norm for x in vec]
 
 
-def _make_collection(chroma_path: str, name: str) -> chromadb.Collection:
-    client = chromadb.EphemeralClient()  # in-memory, no disk I/O
-    return client.get_or_create_collection(
-        name=name,
-        embedding_function=_WordHashEmbedding(),
-        metadata={"hnsw:space": "cosine"},
-    )
-
-
 @pytest.fixture(autouse=True)
 def lightweight_store(monkeypatch):
     """
     Auto-applied to every test.
     Replaces _get_collection() so tests never touch disk or load an ML model.
-    Each test gets its own isolated in-memory collection.
+    One EphemeralClient per test — shared across all calls within the same test
+    so add_documents and query_documents see the same in-memory collection.
     """
     import src.store as store
 
-    monkeypatch.setattr(
-        store,
-        "_get_collection",
-        lambda: _make_collection(store.CHROMA_PATH, store.COLLECTION_NAME),
-    )
+    client = chromadb.EphemeralClient()
+
+    def _get_collection():
+        return client.get_or_create_collection(
+            name=store.COLLECTION_NAME,
+            embedding_function=_WordHashEmbedding(),
+            metadata={"hnsw:space": "cosine"},
+        )
+
+    monkeypatch.setattr(store, "_get_collection", _get_collection)
